@@ -1,9 +1,14 @@
-import { FlatList } from 'react-native';
+import { FlatList, Text } from 'react-native';
 import FacilityCard from '@/components/FacilityCard';
 import { useFacilities } from '@/hooks/useFacilities';
 
 export default function Facilities() {
-  const { facilities } = useFacilities();
+  const { facilities, loading } = useFacilities({
+    lat: 51.5074,
+    lng: -0.1278,
+  });
+
+  if (loading) return <Text>Loading facilities…</Text>;
 
   return (
     <FlatList

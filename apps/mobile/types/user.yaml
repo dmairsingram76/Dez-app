@@ -1,0 +1,17 @@
+User response:
+"{{last_user_message}}"
+
+Conversation context:
+- Current step: {{current_step}}
+- Known goals: {{known_goals}}
+- Known preferences: {{known_preferences}}
+- Known constraints: {{known_constraints}}
+
+Decide if a follow-up question would be helpful.
+
+Return JSON:
+{
+  "intent": "clarify_goal | understand_constraint | preference_depth | confidence_check | no_followup",
+  "question": string | null,
+  "options": string[] | null
+}

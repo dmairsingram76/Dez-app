@@ -65,3 +65,31 @@ export function useChat() {
     switchToForm: () => router.replace('/onboarding/form'),
   };
 }
+
+async function handleUserResponse(value: string) {
+  advanceStructuredStep(value);
+
+  const followUp = await api('/followup-generate', {
+    method: 'POST',
+    body: JSON.stringify({
+      lastMessage: value,
+      currentStep: CHAT_STEPS[stepIndex].key,
+      knownGoals,
+      knownPreferences,
+      knownConstraints,
+    }),
+  });
+
+  if (followUp.intent !== 'no_followup') {
+    setMessages((m) => [
+      ...m,
+      {
+        id: Date.now().toString(),
+        role: 'dez',
+        text: followUp.question,
+        options: followUp.options ?? undefined,
+      },
+    ]);
+  }
+}
+
