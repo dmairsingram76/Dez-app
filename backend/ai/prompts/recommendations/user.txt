@@ -1,0 +1,15 @@
+Based on the following user profile, suggest suitable fitness activity types.
+
+User profile:
+- Age range: {{age_range}}
+- Activity level: {{activity_level}}
+- Goals: {{goals}}
+- Constraints: {{constraints}}
+- Preferences: {{preferences}}
+- Location type: {{location_type}}
+
+Return:
+{
+  "activity_types": string[],
+  "reasoning": string
+}
