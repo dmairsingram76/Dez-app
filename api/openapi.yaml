@@ -1,0 +1,33 @@
+paths:
+  /questionnaire/submit:
+    post:
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+      responses:
+        200: { description: Submitted }
+
+  /recommendations:
+    get:
+      security: [{ bearerAuth: [] }]
+      responses:
+        200: { description: OK }
+
+  /facilities/nearby:
+    get:
+      parameters:
+        - name: lat
+        - name: lng
+      responses:
+        200: { description: OK }
+
+  /profile:
+    get:
+      security: [{ bearerAuth: [] }]
+    put:
+      security: [{ bearerAuth: [] }]
+
+  /events/track:
+    post:
+      requestBody:
+        required: true
