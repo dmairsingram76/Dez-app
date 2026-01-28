@@ -66,11 +66,28 @@ create table recommendations (
 
 create table events (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users(id),
-  event_type text not null,
-  payload jsonb,
-  created_at timestamptz default now()
+
+  -- Identity (optional)
+  user_id uuid null,
+  anonymous_id uuid not null,
+
+  -- Event metadata
+  event_name text not null,
+  event_version int not null default 1,
+
+  -- Context
+  screen text,
+  source text, -- e.g. "mobile", "web"
+  metadata jsonb,
+
+  -- Compliance
+  created_at timestamptz default now(),
+  deleted_at timestamptz
 );
+
+create index idx_events_name on events(event_name);
+create index idx_events_user on events(user_id);
+create index idx_events_anon on events(anonymous_id);
 
 create table cached_searches (
   key text primary key,

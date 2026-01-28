@@ -40,6 +40,13 @@ create policy "Users insert own events"
 on events for insert
 with check (auth.uid() = user_id or auth.uid() is null);
 
+create policy "Read own events"
+on events
+for select
+using (
+  auth.uid() = user_id
+);
+
 alter table facilities enable row level security;
 
 create policy "Public can view facilities"
