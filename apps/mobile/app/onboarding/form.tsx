@@ -1,4 +1,5 @@
 import { View, Text } from 'react-native';
+import { router } from 'expo-router';
 import PrimaryButton from '@/components/PrimaryButton';
 
 export default function ManualOnboarding() {
@@ -10,7 +11,10 @@ export default function ManualOnboarding() {
 
       {/* Inputs intentionally simple for MVP */}
 
-      <PrimaryButton label="Continue" />
+      <PrimaryButton
+        label="Continue"
+        onPress={() => router.replace('/recommendations')}
+      />
     </View>
   );
 }
