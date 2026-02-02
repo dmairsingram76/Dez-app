@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "Dez",
+    "slug": "dez-mobile",
+    "version": "1.0.0",
+    "scheme": "dez",
+    "platforms": ["ios", "android"],
+    "ios": { "bundleIdentifier": "app.dez.mobile" },
+    "android": { "package": "app.dez.mobile" },
+    "plugins": ["expo-router", "expo-secure-store"]
+  }
+}

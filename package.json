@@ -1,0 +1,16 @@
+{
+  "name": "dez-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dez fitness discovery app",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "mobile": "npm run start --workspace=dez-mobile",
+    "start": "npm run mobile"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
