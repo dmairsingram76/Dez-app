@@ -1,27 +1,37 @@
 import { serve } from 'https://deno.land/std/http/server.ts';
-import { getSupabase } from '../_shared/auth.ts';
-import { rateLimit } from '../_shared/rateLimit.ts';
-import { ok, error } from '../_shared/responses.ts';
+import { getSupabase, requireAuth, AuthError } from '../_shared/auth.ts';
+import { rateLimit, RateLimitError } from '../_shared/rateLimit.ts';
+import { ok, error, handlePreflight } from '../_shared/responses.ts';
 
 serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return handlePreflight(req);
+  }
+
   try {
-    rateLimit(req.headers.get('Authorization')!);
-
     const supabase = getSupabase(req);
-    const { data: user } = await supabase.auth.getUser();
+    const user = await requireAuth(supabase);
 
-    if (!user.user) return error('Unauthorized', 401);
+    // Rate limit per user
+    rateLimit(user.id);
 
     const { data, error: dbError } = await supabase
       .from('recommendations')
       .select('*')
-      .eq('user_id', user.user.id)
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
     if (dbError) throw dbError;
 
-    return ok(data);
+    return ok(data, req);
   } catch (e: any) {
-    return error(e.message);
+    if (e instanceof AuthError) {
+      return error('Unauthorized', 401, req);
+    }
+    if (e instanceof RateLimitError) {
+      return error('RATE_LIMIT_EXCEEDED', 429, req);
+    }
+    return error(e.message, 400, req);
   }
 });

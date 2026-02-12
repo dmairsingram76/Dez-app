@@ -1,5 +1,5 @@
 import { FlatList, View } from 'react-native';
-import ChatBubble from './ChatBubble';
+import ChatBubble from './chat/ChatBubble';
 import { ChatMessage } from '@/types/ui';
 
 export default function ChatList({
