@@ -1,9 +1,15 @@
-// apps/mobile/hooks/useAuth.ts
 import { useEffect, useState } from 'react';
+import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../services/supabase';
 
-export function useAuth() {
-  const [session, setSession] = useState<any>(null);
+type UseAuthResult = {
+  session: Session | null;
+  user: User | null;
+  loading: boolean;
+};
+
+export function useAuth(): UseAuthResult {
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -13,11 +19,11 @@ export function useAuth() {
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => setSession(session)
+      (_event, newSession) => setSession(newSession)
     );
 
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  return { session, user: session?.user, loading };
+  return { session, user: session?.user ?? null, loading };
 }

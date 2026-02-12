@@ -1,6 +1,17 @@
 import { getSession } from './secureStore';
 import { API_URL } from './config';
 
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public body?: string
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 export async function api<T>(
   path: string,
   options: RequestInit = {}
@@ -11,11 +22,26 @@ export async function api<T>(
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: token ? `Bearer ${token}` : '',
+      ...(token && { Authorization: `Bearer ${token}` }),
+      ...options.headers,
     },
   });
 
-  if (!res.ok) throw new Error('API error');
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    const message = body ? `API error: ${body}` : `API error (${res.status})`;
+    throw new ApiError(message, res.status, body);
+  }
 
-  return res.json();
+  // Handle empty responses
+  const text = await res.text();
+  if (!text) {
+    return {} as T;
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new ApiError('Invalid JSON response', res.status, text);
+  }
 }

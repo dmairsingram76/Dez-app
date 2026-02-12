@@ -1,16 +1,28 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/apiClient';
+import { Recommendation } from '@/types/ui';
 
-type Recommendation = {
-  id: string;
-  activity: string;
-  [key: string]: any;
+type UseRecommendationsResult = {
+  data: Recommendation[];
+  loading: boolean;
+  error: Error | null;
+  refetch: () => void;
 };
 
-export function useRecommendations() {
+export function useRecommendations(): UseRecommendationsResult {
   const [data, setData] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+
+  const fetchRecommendations = () => {
+    setLoading(true);
+    setError(null);
+
+    api<Recommendation[]>('/recommendations')
+      .then(setData)
+      .catch((e) => setError(e as Error))
+      .finally(() => setLoading(false));
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -31,6 +43,6 @@ export function useRecommendations() {
     };
   }, []);
 
-  return { data, loading, error };
+  return { data, loading, error, refetch: fetchRecommendations };
 }
 
