@@ -1,5 +1,5 @@
-import { getSession } from './secureStore';
 import { API_URL } from './config';
+import { supabase } from '@/services/supabase';
 
 export class ApiError extends Error {
   constructor(
@@ -12,11 +12,16 @@ export class ApiError extends Error {
   }
 }
 
+async function getAccessToken(): Promise<string | null> {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token ?? null;
+}
+
 export async function api<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const token = await getSession();
+  const token = await getAccessToken();
 
   const res = await fetch(`${API_URL}${path}`, {
     ...options,

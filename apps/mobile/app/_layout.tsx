@@ -1,41 +1,42 @@
 import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Text } from 'react-native';
 import { supabase } from '@/services/supabase';
 import { saveSession, clearSession } from '@/lib/secureStore';
 
+type AuthState = 'loading' | 'ready' | 'auth_failed';
+
 export default function RootLayout() {
-  const [ready, setReady] = useState(false);
+  const [authState, setAuthState] = useState<AuthState>('loading');
 
   useEffect(() => {
-    // Initialize auth and sync session to SecureStore
     async function initAuth() {
       try {
-        // Check for existing session
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session?.access_token) {
-          await saveSession(session.access_token);
-        } else {
-          // Sign in anonymously if no session
+        let { data: { session } } = await supabase.auth.getSession();
+
+        if (!session?.access_token) {
           const { data, error } = await supabase.auth.signInAnonymously();
           if (error) {
             console.error('Anonymous sign-in failed:', error);
-          } else if (data.session?.access_token) {
-            await saveSession(data.session.access_token);
+            setAuthState('auth_failed');
+            return;
           }
+          session = data.session ?? null;
         }
+
+        if (session?.access_token) {
+          await saveSession(session.access_token);
+        }
+        setAuthState('ready');
       } catch (error) {
         console.error('Auth initialization failed:', error);
-      } finally {
-        setReady(true);
+        setAuthState('auth_failed');
       }
     }
 
     initAuth();
 
-    // Listen for auth changes and sync token
     const { data: listener } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         if (session?.access_token) {
@@ -49,10 +50,26 @@ export default function RootLayout() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  if (!ready) {
+  if (authState === 'loading') {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  if (authState === 'auth_failed') {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+        <Text style={{ textAlign: 'center', marginBottom: 16 }}>
+          Sign-in failed. In Supabase Dashboard go to Authentication → Providers and enable Anonymous sign-in.
+        </Text>
+        <Text
+          style={{ color: '#0066cc', fontWeight: '600' }}
+          onPress={() => setAuthState('loading')}
+        >
+          Retry
+        </Text>
       </View>
     );
   }
