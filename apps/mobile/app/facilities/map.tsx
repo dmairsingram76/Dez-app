@@ -1,5 +1,5 @@
 import { Text, View } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import MapView from '@/components/Map/MapView';
 import { useFacilities } from '@/hooks/useFacilities';
 
 // TODO: Replace with actual user location from device geolocation
@@ -29,24 +29,13 @@ export default function FacilityMap() {
 
   return (
     <MapView
-      style={{ flex: 1 }}
+      facilities={facilities}
       initialRegion={{
         latitude: DEFAULT_LOCATION.lat,
         longitude: DEFAULT_LOCATION.lng,
         latitudeDelta: 0.05,
         longitudeDelta: 0.05,
       }}
-    >
-      {facilities.map((f) => (
-        <Marker
-          key={f.id}
-          coordinate={{
-            latitude: f.latitude,
-            longitude: f.longitude,
-          }}
-          title={f.name}
-        />
-      ))}
-    </MapView>
+    />
   );
 }

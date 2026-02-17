@@ -40,7 +40,12 @@ export async function api<T>(
   }
 
   try {
-    return JSON.parse(text);
+    const json = JSON.parse(text);
+    // Backend returns { data: T } for success; unwrap so callers get T directly
+    if (json && typeof json === 'object' && 'data' in json && !('error' in json)) {
+      return json.data as T;
+    }
+    return json as T;
   } catch {
     throw new ApiError('Invalid JSON response', res.status, text);
   }

@@ -4,9 +4,13 @@
     "slug": "dez-mobile",
     "version": "1.0.0",
     "scheme": "dez",
-    "platforms": ["ios", "android"],
+    "platforms": ["ios", "android", "web"],
     "ios": { "bundleIdentifier": "app.dez.mobile" },
     "android": { "package": "app.dez.mobile" },
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png"
+    },
     "plugins": ["expo-router", "expo-secure-store"]
   }
 }
