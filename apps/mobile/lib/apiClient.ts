@@ -1,5 +1,9 @@
 import { API_URL } from './config';
 import { supabase } from '@/services/supabase';
+import { getSession } from '@/lib/secureStore';
+
+const SUPABASE_ANON_KEY =
+  (globalThis as any)?.process?.env?.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
 export class ApiError extends Error {
   constructor(
@@ -14,7 +18,9 @@ export class ApiError extends Error {
 
 async function getAccessToken(): Promise<string | null> {
   const { data: { session } } = await supabase.auth.getSession();
-  return session?.access_token ?? null;
+  if (session?.access_token) return session.access_token;
+  // Fallback to stored token (e.g. after navigation when Supabase in-memory session can be briefly stale)
+  return await getSession();
 }
 
 export async function api<T>(
@@ -27,6 +33,8 @@ export async function api<T>(
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      // Supabase Edge Functions require an apikey header when called directly.
+      ...(SUPABASE_ANON_KEY && { apikey: SUPABASE_ANON_KEY }),
       ...(token && { Authorization: `Bearer ${token}` }),
       ...options.headers,
     },

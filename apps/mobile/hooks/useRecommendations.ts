@@ -77,6 +77,6 @@ export function useRecommendations(): UseRecommendationsResult {
     };
   }, []);
 
-  return { data, loading, error, refetch: () => fetchRecommendations(false) };
+  return { data, loading, error, refetch: () => fetchRecommendations(true) };
 }
 

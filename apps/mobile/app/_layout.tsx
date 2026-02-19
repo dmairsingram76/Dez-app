@@ -1,14 +1,19 @@
 import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { View, ActivityIndicator, Text } from 'react-native';
+import { View, ActivityIndicator, Text, TouchableOpacity, Linking } from 'react-native';
 import { supabase } from '@/services/supabase';
 import { saveSession, clearSession } from '@/lib/secureStore';
 
-type AuthState = 'loading' | 'ready' | 'auth_failed';
+const SUPABASE_PROJECT_REF = 'rdyzascdpkdmbujvankt';
+const AUTH_PROVIDERS_URL = `https://supabase.com/dashboard/project/${SUPABASE_PROJECT_REF}/auth/providers`;
+
+type AuthState = 'loading' | 'ready';
 
 export default function RootLayout() {
   const [authState, setAuthState] = useState<AuthState>('loading');
+  const [anonymousSignInFailed, setAnonymousSignInFailed] = useState(false);
+  const [authHintDismissed, setAuthHintDismissed] = useState(false);
 
   useEffect(() => {
     async function initAuth() {
@@ -19,19 +24,21 @@ export default function RootLayout() {
           const { data, error } = await supabase.auth.signInAnonymously();
           if (error) {
             console.error('Anonymous sign-in failed:', error);
-            setAuthState('auth_failed');
-            return;
+            setAnonymousSignInFailed(true);
+          } else {
+            session = data.session ?? null;
+            if (session?.access_token) {
+              await saveSession(session.access_token);
+            }
           }
-          session = data.session ?? null;
-        }
-
-        if (session?.access_token) {
+        } else if (session?.access_token) {
           await saveSession(session.access_token);
         }
-        setAuthState('ready');
       } catch (error) {
         console.error('Auth initialization failed:', error);
-        setAuthState('auth_failed');
+        setAnonymousSignInFailed(true);
+      } finally {
+        setAuthState('ready');
       }
     }
 
@@ -41,6 +48,7 @@ export default function RootLayout() {
       async (_event, session) => {
         if (session?.access_token) {
           await saveSession(session.access_token);
+          setAnonymousSignInFailed(false);
         } else {
           await clearSession();
         }
@@ -58,24 +66,25 @@ export default function RootLayout() {
     );
   }
 
-  if (authState === 'auth_failed') {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-        <Text style={{ textAlign: 'center', marginBottom: 16 }}>
-          Sign-in failed. In Supabase Dashboard go to Authentication → Providers and enable Anonymous sign-in.
-        </Text>
-        <Text
-          style={{ color: '#0066cc', fontWeight: '600' }}
-          onPress={() => setAuthState('loading')}
-        >
-          Retry
-        </Text>
-      </View>
-    );
-  }
+  const showAuthBanner = anonymousSignInFailed && !authHintDismissed;
 
   return (
     <SafeAreaProvider>
+      {showAuthBanner && (
+        <View style={{ backgroundColor: '#fef3c7', padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Text style={{ flex: 1, fontSize: 13 }}>
+            Enable Anonymous sign-in to save progress and get recommendations.
+          </Text>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity onPress={() => Linking.openURL(AUTH_PROVIDERS_URL)}>
+              <Text style={{ color: '#0066cc', fontWeight: '600', fontSize: 13 }}>Open settings</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setAuthHintDismissed(true)}>
+              <Text style={{ color: '#666', fontWeight: '600', fontSize: 13 }}>Dismiss</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
       <Stack screenOptions={{ headerShown: false }} />
     </SafeAreaProvider>
   );
