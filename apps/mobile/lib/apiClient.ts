@@ -1,9 +1,6 @@
-import { API_URL } from './config';
+import { API_URL, SUPABASE_ANON_KEY } from './config';
 import { supabase } from '@/services/supabase';
-import { getSession } from '@/lib/secureStore';
-
-const SUPABASE_ANON_KEY =
-  (globalThis as any)?.process?.env?.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+import { saveSession } from '@/lib/secureStore';
 
 export class ApiError extends Error {
   constructor(
@@ -16,25 +13,31 @@ export class ApiError extends Error {
   }
 }
 
-async function getAccessToken(): Promise<string | null> {
+async function ensureAccessToken(): Promise<string | null> {
   const { data: { session } } = await supabase.auth.getSession();
   if (session?.access_token) return session.access_token;
-  // Fallback to stored token (e.g. after navigation when Supabase in-memory session can be briefly stale)
-  return await getSession();
+
+  // No active session — try to establish one via anonymous sign-in.
+  const { data, error } = await supabase.auth.signInAnonymously();
+  if (!error && data.session?.access_token) {
+    await saveSession(data.session.access_token);
+    return data.session.access_token;
+  }
+
+  return null;
 }
 
 export async function api<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const token = await getAccessToken();
+  const token = await ensureAccessToken();
 
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      // Supabase Edge Functions require an apikey header when called directly.
-      ...(SUPABASE_ANON_KEY && { apikey: SUPABASE_ANON_KEY }),
+      apikey: SUPABASE_ANON_KEY,
       ...(token && { Authorization: `Bearer ${token}` }),
       ...options.headers,
     },

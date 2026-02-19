@@ -1,11 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { CHAT_STEPS } from '@/lib/chatFlow';
 import { ChatMessage } from '@/types/ui';
-import { api, ApiError } from '@/lib/apiClient';
+import { api } from '@/lib/apiClient';
 import { router } from 'expo-router';
 import { trackEvent } from '@/lib/trackEvents';
-import { supabase } from '@/services/supabase';
-import { saveSession } from '@/lib/secureStore';
 
 const QUESTIONNAIRE_VERSION = 1;
 
@@ -38,40 +36,16 @@ export function useChat() {
   async function submitQuestionnaire() {
     setSubmitting(true);
     try {
-      try {
-        await api('/questionnaire-submit', {
-          method: 'POST',
-          body: JSON.stringify({
-            version: QUESTIONNAIRE_VERSION,
-            responses: responsesRef.current,
-          }),
-        });
-      } catch (e) {
-        // If auth isn't ready yet (or expired), re-sign in anonymously and retry once.
-        if (e instanceof ApiError && e.status === 401) {
-          const { data: signInData, error: signInError } =
-            await supabase.auth.signInAnonymously();
-          if (!signInError && signInData.session?.access_token) {
-            await saveSession(signInData.session.access_token);
-            await api('/questionnaire-submit', {
-              method: 'POST',
-              body: JSON.stringify({
-                version: QUESTIONNAIRE_VERSION,
-                responses: responsesRef.current,
-              }),
-            });
-          } else {
-            throw e;
-          }
-        } else {
-          throw e;
-        }
-      }
+      await api('/questionnaire-submit', {
+        method: 'POST',
+        body: JSON.stringify({
+          version: QUESTIONNAIRE_VERSION,
+          responses: responsesRef.current,
+        }),
+      });
       trackEvent({ event_name: 'questionnaire_completed', screen: 'chat' });
     } catch (error) {
       console.error('Failed to submit questionnaire:', error);
-      // Continue to recommendations even if submission fails
-      // The responses are stored locally and can be retried
     } finally {
       setSubmitting(false);
     }
