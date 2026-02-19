@@ -13,7 +13,7 @@ serve(async (req) => {
   try {
     // Require authentication - questionnaire responses must be linked to a user
     const supabase = getSupabase(req);
-    const user = await requireAuth(supabase);
+    const user = await requireAuth(supabase, req);
 
     // Rate limit per user
     rateLimit(user.id);

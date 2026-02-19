@@ -48,7 +48,7 @@ serve(async (req) => {
     rateLimit(anonymousId, EVENTS_RATE_LIMIT);
 
     const supabase = getSupabase(req);
-    const user = await getOptionalUser(supabase);
+    const user = await getOptionalUser(supabase, req);
     
     const event = {
       event_name: sanitizeString(eventName),
