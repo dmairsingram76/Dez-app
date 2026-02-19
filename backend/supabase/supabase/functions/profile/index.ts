@@ -21,7 +21,7 @@ serve(async (req) => {
 
   try {
     const supabase = getSupabase(req);
-    const user = await requireAuth(supabase);
+    const user = await requireAuth(supabase, req);
 
     // Rate limit per user
     rateLimit(user.id);
