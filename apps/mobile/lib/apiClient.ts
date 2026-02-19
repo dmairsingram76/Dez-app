@@ -1,6 +1,6 @@
 import { API_URL, SUPABASE_ANON_KEY } from './config';
 import { supabase } from '@/services/supabase';
-import { saveSession } from '@/lib/secureStore';
+import { saveSession, clearSession } from '@/lib/secureStore';
 
 export class ApiError extends Error {
   constructor(
@@ -13,27 +13,27 @@ export class ApiError extends Error {
   }
 }
 
-async function ensureAccessToken(): Promise<string | null> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session?.access_token) return session.access_token;
-
-  // No active session — try to establish one via anonymous sign-in.
+async function freshSignIn(): Promise<string | null> {
   const { data, error } = await supabase.auth.signInAnonymously();
   if (!error && data.session?.access_token) {
     await saveSession(data.session.access_token);
     return data.session.access_token;
   }
-
   return null;
 }
 
-export async function api<T>(
-  path: string,
-  options: RequestInit = {}
-): Promise<T> {
-  const token = await ensureAccessToken();
+async function ensureAccessToken(): Promise<string | null> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) return session.access_token;
+  return freshSignIn();
+}
 
-  const res = await fetch(`${API_URL}${path}`, {
+async function makeRequest(
+  path: string,
+  token: string | null,
+  options: RequestInit
+): Promise<Response> {
+  return fetch(`${API_URL}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -42,6 +42,22 @@ export async function api<T>(
       ...options.headers,
     },
   });
+}
+
+export async function api<T>(
+  path: string,
+  options: RequestInit = {}
+): Promise<T> {
+  let token = await ensureAccessToken();
+  let res = await makeRequest(path, token, options);
+
+  if (res.status === 401) {
+    // Cached session may be stale — sign out, get a fresh token, and retry once.
+    await supabase.auth.signOut();
+    await clearSession();
+    token = await freshSignIn();
+    res = await makeRequest(path, token, options);
+  }
 
   if (!res.ok) {
     const body = await res.text().catch(() => '');
