@@ -1,3 +1,4 @@
+/// <reference path="../_shared/deno.d.ts" />
 import { serve } from 'https://deno.land/std/http/server.ts';
 import { getSupabase, requireAuth, AuthError } from '../_shared/auth.ts';
 import { rateLimit, RateLimitError } from '../_shared/rateLimit.ts';
@@ -24,7 +25,12 @@ serve(async (req) => {
 
     if (dbError) throw dbError;
 
-    return ok(data, req);
+    const mapped = (data ?? []).map((row: any) => ({
+      ...row,
+      activity: row.ai_payload?.activity ?? row.reasoning ?? 'Recommendation',
+    }));
+
+    return ok(mapped, req);
   } catch (e: any) {
     if (e instanceof AuthError) {
       return error('Unauthorized', 401, req);
